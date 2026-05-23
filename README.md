@@ -4,6 +4,17 @@
 
 ---
 
+## 📱 App in Action
+
+> [!TIP]
+> **To add your own recorded GIF**: Record a short video of the app running in the web preview, save/convert it to `demo.gif` in your root folder, and update the path below!
+
+<p align="center">
+  <img src="demo.gif" alt="NapStop Demo" width="320"/>
+</p>
+
+---
+
 ## 🚀 Key Features
 
 *   **Precise Geofenced Alarms**: Set up a destination and wake up precisely when you cross into the designated arrival radius.

@@ -7,6 +7,13 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
+import android.os.Looper
+import android.util.Log
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.Priority
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -156,6 +163,40 @@ fun MainScreen(
 
     // Database state
     val savedAlarms by mainViewModel.savedAlarms.collectAsStateWithLifecycle()
+
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    DisposableEffect(fusedLocationClient) {
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
+            .setMinUpdateIntervalMillis(2000)
+            .build()
+
+        val locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                locationResult.lastLocation?.let { location ->
+                    AppRepository.currentLocation.value = location
+                }
+            }
+        }
+
+        try {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                if (location != null) {
+                    AppRepository.currentLocation.value = location
+                }
+            }
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                Looper.getMainLooper()
+            )
+        } catch (e: SecurityException) {
+            Log.e("MainActivity", "Missing location permissions for foreground updates", e)
+        }
+
+        onDispose {
+            fusedLocationClient.removeLocationUpdates(locationCallback)
+        }
+    }
 
     var speedText by remember { mutableStateOf("0 km/h") }
     var distanceText by remember { mutableStateOf("Unknown") }
