@@ -1,21 +1,52 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# 💤 NapStop — Location-Based Commute Alarm
 
-# Run and deploy your AI Studio app
+**NapStop** is a lightweight, location-based alarm application designed specifically for commuters, travelers, and public transit nappers. By leveraging GPS tracking and customizable geofences, NapStop ensures you never miss your bus stop, train station, or destination again—allowing you to snooze peacefully with full peace of mind.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/b2c4a912-19ba-4586-a875-7b62324880f1
+## 🚀 Key Features
 
-## Run Locally
+*   **Precise Geofenced Alarms**: Set up a destination and wake up precisely when you cross into the designated arrival radius.
+*   **Custom Favorites (Room Database)**: Save recurring commutes, workspaces, or gym locations for one-tap tracking.
+*   **Dynamic Radius Adjustment**: Customize the warning boundary radius (e.g., from 100 meters up to multiple kilometers) to fit high-speed trains or short suburban walking routes.
+*   **Smart Audio & Headphone Checks**: Intelligently verifies headphone connectivity to route warnings appropriately, preventing loud disturbances to nearby passengers.
+*   **Intuitive Map Controls**: Drag-and-drop map markers (powered by OpenStreetMap via Osmdroid) with a helper button to instantly snap centering back to your live location or active target destination.
+*   **Elegant Obsidian Night Theme**: High-contrast, easy-on-the-eyes dark visual theme tailored for early mornings and late-night travel comfort.
 
-**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
+---
 
+## 🛠️ Built With
 
-1. Open Android Studio
-2. Select **Open** and choose the directory containing this project
-3. Allow Android Studio to fix any incompatibilities as it imports the project.
-4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
-5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
-6. Run the app on an emulator or physical device
+*   **Language**: [Kotlin](https://kotlinlang.org/) — 100% type-safe, expressive, and modern.
+*   **UI Framework**: [Jetpack Compose](https://developer.android.com/compose) — Custom designed Material 3 components, fluid animations, and responsive window density.
+*   **Architecture**: MVVM (Model-View-ViewModel) + Clean Architecture repository patterns.
+*   **Database**: [Room SQLite](https://developer.android.com/training/data-storage/room) — Offline local persistence for favorited alarms.
+*   **Map Integration**: [Osmdroid (OpenStreetMap)](https://github.com/osmdroid/osmdroid) — Free, customizable open-source mapping.
+*   **Testing Infrastructure**: 
+    *   **Robolectric**: Fast, headless JVM integration tests for checking database flows, AlarmControllers, and ViewModels.
+    *   **Roborazzi**: High-fidelity visual snapshot and regression testing.
+
+---
+
+## 🧪 Testing and Verification
+
+NapStop has robust local JUnit, Robolectric, and screenshot test coverage. You can run tests easily with the following Gradle commands:
+
+### Run unit and integration tests
+```bash
+gradle :app:testDebugUnitTest
+```
+
+### Record / Update UI Screenshot Ref (Roborazzi)
+```bash
+gradle :app:recordRoborazziDebug
+```
+
+---
+
+## 📦 Getting Started
+
+1. **Clone the project** or export it directly from Google AI Studio.
+2. **Open in Android Studio** (Ladybug or newer recommended).
+3. **Build and Run** on a device/emulator running Android 10 (API 29) or higher.
+4. Make sure to grant **Location Permissions** to enable real-time transit tracking!
