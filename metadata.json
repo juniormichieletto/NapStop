@@ -1,0 +1,6 @@
+{
+  "name": "NapStop",
+  "description": "Location-based alarm app to wake you up before your stop.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
