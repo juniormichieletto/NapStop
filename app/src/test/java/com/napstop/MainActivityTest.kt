@@ -3,6 +3,8 @@ package com.napstop
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
@@ -20,6 +22,14 @@ class MainActivityTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    @org.junit.Before
+    fun setUp() {
+        AppRepository.targetLocation.value = null
+        AppRepository.isAlarmActive.value = false
+        AppRepository.currentLocation.value = null
+        AppRepository.dynamicRadius.value = 500f
+    }
 
     @Test
     fun mainScreen_rendersAndShowsStartButton() {
@@ -52,5 +62,34 @@ class MainActivityTest {
         // Ensure "Start Alarm" or "Alarm Active" text button is visible now
         composeTestRule.onNodeWithText("Start Alarm").assertExists()
         composeTestRule.onNodeWithText("Stop").assertExists()
+    }
+
+    @Test
+    fun mainScreen_alarmButtonStatesBasedOnActivity() {
+        // Prepare state: set target location so buttons are visible
+        AppRepository.targetLocation.value = org.osmdroid.util.GeoPoint(48.8566, 2.3522)
+        AppRepository.isAlarmActive.value = false
+
+        composeTestRule.setContent {
+            MainScreen(hasBackgroundLocation = true)
+        }
+
+        composeTestRule.waitForIdle()
+
+        // When alarm is NOT active:
+        // - "Start Alarm" button exists and is ENABLED
+        // - "Stop" button exists and is DISABLED
+        composeTestRule.onNodeWithText("Start Alarm").assertExists().assertIsEnabled()
+        composeTestRule.onNodeWithText("Stop").assertExists().assertIsNotEnabled()
+
+        // Activate alarm via state flow simulation
+        AppRepository.isAlarmActive.value = true
+        composeTestRule.waitForIdle()
+
+        // When alarm IS active:
+        // - "Alarm Active" button is visible and is DISABLED (since enabled = !isAlarmActive)
+        // - "Stop" button exists and is ENABLED (since enabled = isAlarmActive)
+        composeTestRule.onNodeWithText("Alarm Active").assertExists().assertIsNotEnabled()
+        composeTestRule.onNodeWithText("Stop").assertExists().assertIsEnabled()
     }
 }

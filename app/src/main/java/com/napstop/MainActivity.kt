@@ -601,7 +601,11 @@ fun MainScreen(
 
                     Button(
                         modifier = Modifier.weight(1f).height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        enabled = isAlarmActive,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            disabledContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.38f)
+                        ),
                         onClick = {
                             AppRepository.isAlarmActive.value = false
                             AlarmController.stopAlarm()
