@@ -6,52 +6,116 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Subtle Drop Shadow for the Location Pin -->
-    <group
-        android:scaleX="3.6"
-        android:scaleY="3.6"
-        android:translateX="11.8"
-        android:translateY="12.8">
-        <path
-            android:fillColor="#15000000"
-            android:pathData="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-    </group>
+    <!-- Outer Location Pulse / Geofence rings (Active Tracking Indicator) -->
+    <path
+        android:pathData="M54,54m-38,0a38,38 0,1 1,76 0a38,38 0,1 1,-76 0"
+        android:strokeWidth="1.2"
+        android:strokeColor="#4FACFE"
+        android:strokeAlpha="0.3"
+        android:fillColor="#00000000" />
 
-    <!-- Scaled Map Pin with Sunset Gradient -->
+    <path
+        android:pathData="M54,54m-28,0a28,28 0,1 1,56 0a28,28 0,1 1,-56 0"
+        android:strokeWidth="1.0"
+        android:strokeColor="#00F2FE"
+        android:strokeAlpha="0.5"
+        android:fillColor="#00000000" />
+
+    <!-- 1. Stylized Destination Map Pin (Vibrant Blue/Cyan Gradient) -->
+    <path
+        android:pathData="M54,16C37.4,16 24,29.4 24,46c0,21.3 30,46 30,46s30,-24.7 30,-46c0,-16.6 -13.4,-30 -30,-30zm0,42c-7.7,0 -14,-6.3 -14,-14s6.3,-14 14,-14s14,6.3 14,14s-6.3,14 -14,14z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="54"
+                android:startY="16"
+                android:endX="54"
+                android:endY="92"
+                android:type="linear">
+                <item
+                    android:color="#00F2FE"
+                    android:offset="0.0" />
+                <item
+                    android:color="#4FACFE"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 2. Alarm Bell / Ringing Indicator overlay inside the Pin Center -->
+    <!-- Center the Alarm Clock/Bell exactly inside the 28dp central bulb area of the pin -->
+    <!-- The pin bulb center is (54, 46) -->
     <group
-        android:scaleX="3.6"
-        android:scaleY="3.6"
-        android:translateX="10.8"
-        android:translateY="10.8">
+        android:translateX="54"
+        android:translateY="46">
+        <!-- Alarm Clock elements: Bells at the top-left and top-right -->
         <path
-            android:pathData="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z">
+            android:fillColor="#FFFFFF"
+            android:pathData="M-10,-10 L-14,-6 C-12,-4 -11,-4 -10,-5 L-6,-9 Z"
+            android:strokeWidth="1.0"
+            android:strokeColor="#FFFFFF" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M10,-10 L14,-6 C12,-4 11,-4 10,-5 L6,-9 Z"
+            android:strokeWidth="1.0"
+            android:strokeColor="#FFFFFF" />
+
+        <!-- Double ringing vibration waves on the left/right of the alarm bell -->
+        <path
+            android:pathData="M-13,-2 C-15,-4 -15,-6 -13,-8"
+            android:strokeWidth="1.5"
+            android:strokeColor="#FF4B2B"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:pathData="M13,-2 C15,-4 15,-6 13,-8"
+            android:strokeWidth="1.5"
+            android:strokeColor="#FF4B2B"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- The Alarm Bell Body at the center (54, 46) with elegant sunset amber gradient -->
+        <path
+            android:pathData="M0,-8C-4.4,-8 -8,-4.4 -8,0 L-8,5 L8,5 L8,0 C8,-4.4 4.4,-8 0,-8 Z M-10,5 L10,5 L10,7 L-10,7 Z">
             <aapt:attr name="android:fillColor">
                 <gradient
-                    android:startX="12"
-                    android:startY="2"
-                    android:endX="12"
-                    android:endY="22"
+                    android:startX="0"
+                    android:startY="-8"
+                    android:endX="0"
+                    android:endY="7"
                     android:type="linear">
                     <item
-                        android:color="#FF3C5F"
+                        android:color="#FF8A00"
                         android:offset="0.0" />
                     <item
-                        android:color="#FF8A00"
+                        android:color="#FF3C5F"
                         android:offset="1.0" />
                 </gradient>
             </aapt:attr>
         </path>
+
+        <!-- A small shiny drop of light at the bell's top loop represented as a round-capped dot path -->
+        <path
+            android:pathData="M 0,-9 L 0.01,-9"
+            android:strokeWidth="3.6"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round" />
+
+        <!-- Bell Clapper swinging at the bottom -->
+        <path
+            android:pathData="M-2,7 L2,7 L1,10 C0,11 0,11 -1,10 Z"
+            android:fillColor="#FFD700" />
     </group>
 
-    <!-- Alarm Clock centered inside the pin bulb -->
-    <group
-        android:scaleX="1.6"
-        android:scaleY="1.6"
-        android:translateX="34.8"
-        android:translateY="24">
-        <!-- Ringing bell/alarm clock face & hands -->
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M22,5.72l-4.6,-3.86l-1.29,1.53l4.6,3.86L22,5.72z M7.88,3.39L3.29,7.25l1.29,1.53l4.6,-3.86L7.88,3.39z M12.5,8H11v6l4.75,2.85l0.75,-1.23l-4,-2.37V8z M12,4c-4.97,0 -9,4.03 -9,9s4.03,9 9,9s9,-4.03 9,-9S16.97,4 M12,20c-3.87,0 -7,-3.13 -7,-7s3.13,-7 7,-7s7,3.13 7,7S15.87,20 12,20" />
-    </group>
+    <!-- Location dot at the tip of the Map Pin represented as a glowing capsule with round caps -->
+    <path
+        android:pathData="M 48,92 L 60,92"
+        android:strokeWidth="3.0"
+        android:strokeColor="#3000F2FE"
+        android:strokeLineCap="round" />
+
+    <path
+        android:pathData="M 53.5,92 L 54.5,92"
+        android:strokeWidth="2.0"
+        android:strokeColor="#00F2FE"
+        android:strokeLineCap="round" />
 </vector>
