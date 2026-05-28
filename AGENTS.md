@@ -1,5 +1,8 @@
 # NapStop Developer & AI Agent Guidelines
 
+> [!CRITICAL]
+> **AI AGENT RULE: Never implement any feature, change, or refactoring before presenting a plan and having it explicitly approved by the user.**
+
 This document outlines command references, architectural patterns, and project conventions for NapStop. Follow these guidelines during iterative feature development, bug investigation, or test runs.
 
 ---
