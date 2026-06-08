@@ -42,11 +42,3 @@ gradle :app:testDebugUnitTest
 gradle :app:recordRoborazziDebug
 ```
 
----
-
-## 📦 Getting Started
-
-1. **Clone the project** or export it directly from Google AI Studio.
-2. **Open in Android Studio** (Ladybug or newer recommended).
-3. **Build and Run** on a device/emulator running Android 10 (API 29) or higher.
-4. Make sure to grant **Location Permissions** (Background Location recommended) and **Notification Permissions** to enable real-time transit tracking and foreground services.
