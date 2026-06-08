@@ -1,0 +1,17 @@
+project:
+  name: NapStop
+  version: environment
+
+release:
+  github:
+    overwrite: true
+    tagName: "v{{projectVersion}}"
+    releaseName: "Release v{{projectVersion}}"
+    changelog:
+      formatted: ALWAYS
+      preset: conventional-commits
+
+files:
+  artifacts:
+    - path: app/build/outputs/apk/debug/app-debug.apk
+      transform: 'NapStop-v{{projectVersion}}.apk'

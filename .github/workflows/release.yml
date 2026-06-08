@@ -2,8 +2,9 @@ name: Build and Release Android APK
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 permissions:
@@ -37,24 +38,14 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew :app:assembleDebug
 
-      - name: Prepare Release Artifacts
-        run: |
-          mkdir -p release-artifacts
-          # Locate standard debug APK and rename for professional presentation
-          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
-            cp app/build/outputs/apk/debug/app-debug.apk release-artifacts/NapStop-${{ github.ref_name || 'debug' }}.apk
-          else
-            echo "Expected APK signature path not found!"
-            exit 1
-          fi
+      - name: Set Project Version
+        id: vars
+        run: echo "VERSION=1.0.${{ github.run_number }}" >> $GITHUB_ENV
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Run JReleaser
+        uses: jreleaser/release-action@v2
         with:
-          files: release-artifacts/*.apk
-          generate_release_notes: true
-          draft: false
-          prerelease: false
+          arguments: release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JRELEASER_PROJECT_VERSION: ${{ env.VERSION }}
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
