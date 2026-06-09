@@ -40,6 +40,9 @@ jobs:
       - name: Decode debug keystore
         run: base64 -d debug.keystore.base64 > debug.keystore
 
+      - name: Run Tests
+        run: ./gradlew :app:testDebugUnitTest
+
       - name: Build Debug APK
         run: ./gradlew :app:assembleDebug
 
