@@ -42,3 +42,11 @@ gradle :app:testDebugUnitTest
 gradle :app:recordRoborazziDebug
 ```
 
+---
+
+## 📦 Download & Install
+
+1. Go to the [NapStop Releases page](https://github.com/juniormichieletto/NapStop/releases).
+2. Under the latest release, click to expand the **Assets** section (if it isn't already).
+3. Download the `.apk` file to your Android device.
+4. Tap the downloaded APK file to install it. *(Note: You may need to allow "Install from unknown sources" in your device settings).*
