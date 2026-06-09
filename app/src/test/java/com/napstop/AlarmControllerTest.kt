@@ -13,7 +13,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowAudioManager
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+@Config(sdk = [34])
 class AlarmControllerTest {
 
     @Test
