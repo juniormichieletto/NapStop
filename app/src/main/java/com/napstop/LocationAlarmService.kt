@@ -156,6 +156,13 @@ class LocationAlarmService : Service() {
             this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        val stopIntent = Intent(this, AlarmStopReceiver::class.java).apply {
+            action = "com.napstop.ACTION_STOP_ALARM"
+        }
+        val stopPendingIntent = PendingIntent.getBroadcast(
+            this, 1, stopIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
         val alertNotification = NotificationCompat.Builder(this, alertChannelId)
             .setContentTitle("Wake Up!")
             .setContentText("You are approaching your destination.")
@@ -163,6 +170,7 @@ class LocationAlarmService : Service() {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setContentIntent(pendingIntent)
+            .addAction(0, "Stop Alarm", stopPendingIntent)
             .setAutoCancel(true)
             .build()
 

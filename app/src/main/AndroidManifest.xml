@@ -41,6 +41,14 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <receiver
+            android:name=".AlarmStopReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.napstop.ACTION_STOP_ALARM" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
