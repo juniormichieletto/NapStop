@@ -1,6 +1,5 @@
 project:
   name: NapStop
-  version: environment
 
 release:
   github:
