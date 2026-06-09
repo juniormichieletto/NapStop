@@ -3,7 +3,7 @@
 > [!CRITICAL]
 > **AI AGENT RULES:**
 > 1. **No Unapproved Implementations:** Never implement any feature, change, or refactoring without first presenting a detailed implementation plan/spec and receiving explicit approval from the user.
-> 2. **Continuous Verification:** Always run tests (`gradle :app:testDebugUnitTest`) and compile the appulet (`gradle :app:assembleDebug` or `compile_applet`) after each change to verify correctness.
+> 2. **Continuous Verification:** You MUST run the tests (`gradle :app:testDebugUnitTest`) and they must be passing after each change. Also compile the applet with `gradle :app:assembleDebug` or `compile_applet`.
 
 This document outlines command references, architectural patterns, and project conventions for NapStop. Follow these guidelines during iterative feature development, bug investigation, or test runs.
 
