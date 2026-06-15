@@ -147,7 +147,6 @@ class LocationAlarmService : Service() {
 
     private fun triggerAlarm() {
         isAlarmTriggered = true
-        AppRepository.isAlarmActive.value = false // Deactivate logically once triggered
         
         AlarmController.startAlarm(this)
         
