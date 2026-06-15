@@ -77,11 +77,19 @@ class LocationAlarmService : Service() {
             this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        val stopIntent = Intent(this, AlarmStopReceiver::class.java).apply {
+            action = "com.napstop.ACTION_STOP_ALARM"
+        }
+        val stopPendingIntent = PendingIntent.getBroadcast(
+            this, 1, stopIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Commute Wake is Active")
             .setContentText("Scanning for your stop...")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(pendingIntent)
+            .addAction(0, "Stop Alarm", stopPendingIntent)
             .setOngoing(true)
             .build()
 
@@ -198,11 +206,19 @@ class LocationAlarmService : Service() {
             this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        val stopIntent = Intent(this, AlarmStopReceiver::class.java).apply {
+            action = "com.napstop.ACTION_STOP_ALARM"
+        }
+        val stopPendingIntent = PendingIntent.getBroadcast(
+            this, 1, stopIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Your Stop is $distanceText Away")
             .setContentText("Triggering at ${rad.toInt()}m | Keep resting safely")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(pendingIntent)
+            .addAction(0, "Stop Alarm", stopPendingIntent)
             .setOngoing(true)
             .build()
 
