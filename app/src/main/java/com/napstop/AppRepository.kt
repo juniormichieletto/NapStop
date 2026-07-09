@@ -8,6 +8,9 @@ object AppRepository {
     // The target destination
     val targetLocation = MutableStateFlow<GeoPoint?>(null)
     
+    // Custom radius if the user specified one, null if dynamic
+    val customRadius = MutableStateFlow<Float?>(null)
+    
     // Whether the alarm is currently active
     val isAlarmActive = MutableStateFlow(false)
     

@@ -132,6 +132,7 @@ fun MainScreen(
     val isAlarmActive by AppRepository.isAlarmActive.collectAsState()
     val currentLocation by AppRepository.currentLocation.collectAsState()
     val dynamicRadius by AppRepository.dynamicRadius.collectAsState()
+    val customRadius by AppRepository.customRadius.collectAsState()
 
     val powerManager = remember { context.getSystemService(Context.POWER_SERVICE) as PowerManager }
     var isIgnoringBatteryOptimizations by remember {
@@ -212,6 +213,7 @@ fun MainScreen(
     // Dialog state for custom label naming
     var showSaveDialog by remember { mutableStateOf(false) }
     var customAlarmLabel by remember { mutableStateOf("") }
+    var saveDialogRadius by remember { mutableStateOf(500f) }
 
     var forceCenterTrigger by remember { mutableStateOf(0L) }
     var explicitCenterPoint by remember { mutableStateOf<GeoPoint?>(null) }
@@ -256,13 +258,22 @@ fun MainScreen(
                         placeholder = { Text("Home, Work Office, Central Station etc.") },
                         singleLine = true
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Trigger Radius: ${saveDialogRadius.toInt()}m", style = MaterialTheme.typography.bodyMedium)
+                    Slider(
+                        value = saveDialogRadius,
+                        onValueChange = { saveDialogRadius = it },
+                        valueRange = 100f..5000f,
+                        steps = 49
+                    )
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         targetLoc?.let {
-                            mainViewModel.saveAlarm(customAlarmLabel, it.latitude, it.longitude)
+                            mainViewModel.saveAlarm(customAlarmLabel, it.latitude, it.longitude, saveDialogRadius)
+                            AppRepository.customRadius.value = saveDialogRadius // set as current
                         }
                         showSaveDialog = false
                     }
@@ -364,6 +375,7 @@ fun MainScreen(
                 targetLocation = targetLoc,
                 currentLocation = currentLocation,
                 dynamicRadius = dynamicRadius,
+                customRadius = customRadius,
                 forceCenterTrigger = forceCenterTrigger,
                 explicitCenterPoint = explicitCenterPoint,
                 onTargetSelected = { geoPoint ->
@@ -556,6 +568,7 @@ fun MainScreen(
                         onClick = {
                             if (!isAlreadySaved) {
                                 customAlarmLabel = searchQuery
+                                saveDialogRadius = customRadius ?: dynamicRadius
                                 showSaveDialog = true
                             }
                         }
@@ -576,7 +589,28 @@ fun MainScreen(
                 ) {
                     StatBox("Distance", distanceText)
                     StatBox("Speed", speedText)
-                    StatBox("Radius", "${dynamicRadius.toInt()}m")
+                    StatBox("Radius", "${(customRadius ?: dynamicRadius).toInt()}m")
+                }
+                
+                if (!isAlarmActive) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Trigger Radius", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (customRadius != null) {
+                                Text(
+                                    "Reset to Dynamic",
+                                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.primary),
+                                    modifier = Modifier.clickable { AppRepository.customRadius.value = null }
+                                )
+                            }
+                        }
+                        Slider(
+                            value = customRadius ?: dynamicRadius,
+                            onValueChange = { AppRepository.customRadius.value = it },
+                            valueRange = 100f..10000f
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -649,6 +683,7 @@ fun MainScreen(
                                             if (!isAlarmActive) {
                                                 val point = GeoPoint(alarm.latitude, alarm.longitude)
                                                 AppRepository.targetLocation.value = point
+                                                AppRepository.customRadius.value = alarm.radius
                                                 searchQuery = alarm.name
                                             }
                                         }
@@ -720,6 +755,7 @@ fun MapKitDisplay(
     targetLocation: GeoPoint?,
     currentLocation: Location?,
     dynamicRadius: Float,
+    customRadius: Float?,
     forceCenterTrigger: Long = 0L,
     explicitCenterPoint: GeoPoint? = null,
     onTargetSelected: (GeoPoint) -> Unit
@@ -768,7 +804,7 @@ fun MapKitDisplay(
         }
     }
 
-    LaunchedEffect(targetLocation, currentLocation, dynamicRadius) {
+    LaunchedEffect(targetLocation, currentLocation, dynamicRadius, customRadius) {
         mapView.overlays.clear()
 
         // Map events for clicking
@@ -794,7 +830,8 @@ fun MapKitDisplay(
 
             // Radius Polygon
             val polygon = Polygon(mapView)
-            polygon.points = Polygon.pointsAsCircle(targetLocation, dynamicRadius.toDouble())
+            val currentRad = customRadius ?: dynamicRadius
+            polygon.points = Polygon.pointsAsCircle(targetLocation, currentRad.toDouble())
             polygon.fillColor = AndroidColor.argb(50, 255, 0, 0)
             polygon.strokeColor = AndroidColor.argb(150, 255, 0, 0)
             polygon.strokeWidth = 2f

@@ -5,7 +5,7 @@ NapStop is an Android application designed for commuters who want to sleep on pu
 
 ## 2. Core Features
 - **Location Geofencing**: Uses the Fused Location Provider client (`PRIORITY_HIGH_ACCURACY`) to track the user's location and calculate the distance to the target destination. 
-- **Dynamic Radius**: Users can adjust the alarm trigger radius (e.g., from 100 meters up to multiple kilometers) via a dynamic slider, adapting to different commuting speeds (train vs. walking).
+- **Dynamic Radius**: Users can adjust the alarm trigger radius manually via a slider on the main panel and save it for future use. Alternatively, they can use the smart dynamic radius that adapts to commuting speeds (train vs. walking) by estimating arrival time.
 - **Background Tracking**: Leverages an Android Foreground Service (`LocationAlarmService`) with persistent wake locks and background location permissions to ensure alarms trigger even when the screen is off or the app is minimized.
 - **Smart Alarm Routing**: Detects if headphones (wired or Bluetooth) are connected before playing the alarm. If headphones are detected, the alarm routes through the media stream at a safe volume to avoid disturbing others. Otherwise, it plays loudly over the device speaker.
 - **Notification Controls**: The triggered alarm notification includes a direct "Stop" action button (using a BroadcastReceiver), allowing users to immediately silence the alarm without needing to open the app.

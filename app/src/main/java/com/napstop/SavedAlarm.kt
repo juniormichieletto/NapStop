@@ -9,5 +9,6 @@ data class SavedAlarm(
     val name: String,
     val latitude: Double,
     val longitude: Double,
+    val radius: Float = 500f,
     val timestamp: Long = System.currentTimeMillis()
 )

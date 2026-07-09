@@ -42,6 +42,7 @@ class CommuteWakeDatabaseTest {
             name = "Work Office",
             latitude = 37.7749,
             longitude = -122.4194,
+            radius = 600f,
             timestamp = 1000L
         )
 
@@ -52,6 +53,7 @@ class CommuteWakeDatabaseTest {
         assertEquals("Work Office", allAlarms[0].name)
         assertEquals(37.7749, allAlarms[0].latitude, 0.0001)
         assertEquals(-122.4194, allAlarms[0].longitude, 0.0001)
+        assertEquals(600f, allAlarms[0].radius, 0.0001f)
     }
 
     @Test
@@ -61,6 +63,7 @@ class CommuteWakeDatabaseTest {
             name = "Gym",
             latitude = 34.0522,
             longitude = -118.2437,
+            radius = 500f,
             timestamp = 2000L
         )
 
@@ -80,6 +83,7 @@ class CommuteWakeDatabaseTest {
             name = "Central Station",
             latitude = 40.7128,
             longitude = -74.0060,
+            radius = 500f,
             timestamp = 3000L
         )
 

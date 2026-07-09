@@ -139,13 +139,17 @@ class LocationAlarmService : Service() {
         val distanceInMeters = currentLoc.distanceTo(targetLoc)
 
         // Dynamic Radius Logic
-        // We want ~3 minutes of warning.
-        // speed is in m/s. 
-        val speed = if (currentLoc.hasSpeed()) currentLoc.speed else 0f
-        val waitTimeSeconds = 180f
-        val minRadius = 500f
-        
-        val newDynamicRadius = maxOf(minRadius, speed * waitTimeSeconds)
+        val customRadius = AppRepository.customRadius.value
+        val newDynamicRadius = if (customRadius != null) {
+            customRadius
+        } else {
+            // We want ~3 minutes of warning.
+            // speed is in m/s. 
+            val speed = if (currentLoc.hasSpeed()) currentLoc.speed else 0f
+            val waitTimeSeconds = 180f
+            val minRadius = 500f
+            maxOf(minRadius, speed * waitTimeSeconds)
+        }
         AppRepository.dynamicRadius.value = newDynamicRadius
 
         if (distanceInMeters <= newDynamicRadius) {

@@ -8,7 +8,7 @@
 
 *   **Precise Geofenced Alarms**: Set up a destination and wake up precisely when you cross into the designated arrival radius.
 *   **Saved Locations (Room Database)**: Save recurring commutes, workspaces, or home locations for one-tap tracking.
-*   **Dynamic Radius Adjustment**: Customize the warning boundary radius (e.g., from 100 meters up to 10 kilometers) to fit high-speed trains or short suburban walking routes.
+*   **Dynamic Radius Adjustment**: Customize the alarm trigger radius manually via a slider on the main panel and save it for future use. Alternatively, use the smart dynamic radius that adapts to commuting speeds (train vs. walking) by estimating arrival time.
 *   **Smart Audio & Headphone Checks**: Intelligently verifies headphone connectivity to route warnings appropriately, preventing loud disturbances to nearby passengers if headphones are detected.
 *   **Interactive Map Controls**: Drag-and-drop map markers (powered by OpenStreetMap via Osmdroid) with a helper button to instantly snap centering back to your live location or active target destination.
 *   **Background Activity Restrictions Mitigation**: Handles wakelocks and requests "Allow all the time" location access to keep tracking active even when the screen is off or the device is sleeping.
