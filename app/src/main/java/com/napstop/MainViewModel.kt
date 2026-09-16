@@ -18,10 +18,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             initialValue = emptyList()
         )
 
-    fun saveAlarm(name: String, latitude: Double, longitude: Double, radius: Float = 500f) {
+    fun saveAlarm(name: String, latitude: Double, longitude: Double, radius: Float = 500f, id: Int = 0) {
         viewModelScope.launch {
             repository.insertAlarm(
                 SavedAlarm(
+                    id = id,
                     name = name.ifBlank { "Location (${String.format("%.4f", latitude)}, ${String.format("%.4f", longitude)})" },
                     latitude = latitude,
                     longitude = longitude,

@@ -75,6 +75,7 @@ import com.napstop.ui.components.AlarmList
 import com.napstop.ui.components.CurrentLocationButton
 import com.napstop.ui.components.MapContent
 import com.napstop.ui.components.SearchLocationBar
+import com.napstop.ui.model.LocationAlarmUiModel
 import com.napstop.ui.model.toUiModel
 import kotlinx.coroutines.launch
 import org.osmdroid.util.GeoPoint
@@ -124,10 +125,13 @@ fun LocationAlarmScreen(
         }
     }
 
+    // State for paused alarms
+    var pausedAlarmIds by remember { mutableStateOf(setOf<Int>()) }
+
     // Database state
     val savedAlarmsEntities by mainViewModel.savedAlarms.collectAsStateWithLifecycle()
-    val savedAlarmUiModels = remember(savedAlarmsEntities, targetLoc, isAlarmActive) {
-        savedAlarmsEntities.map { it.toUiModel(targetLoc, isAlarmActive) }
+    val savedAlarmUiModels = remember(savedAlarmsEntities, targetLoc, isAlarmActive, pausedAlarmIds) {
+        savedAlarmsEntities.map { it.toUiModel(targetLoc, isAlarmActive, pausedAlarmIds) }
     }
 
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
@@ -175,8 +179,9 @@ fun LocationAlarmScreen(
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
 
-    // Dialog state for custom label naming
+    // Dialog state for custom label naming & editing
     var showSaveDialog by remember { mutableStateOf(false) }
+    var editingAlarm by remember { mutableStateOf<LocationAlarmUiModel?>(null) }
     var customAlarmLabel by remember { mutableStateOf("") }
     var saveDialogRadius by remember { mutableStateOf(500f) }
 
@@ -210,8 +215,11 @@ fun LocationAlarmScreen(
 
     if (showSaveDialog) {
         AlertDialog(
-            onDismissRequest = { showSaveDialog = false },
-            title = { Text("Save Destination") },
+            onDismissRequest = {
+                showSaveDialog = false
+                editingAlarm = null
+            },
+            title = { Text(if (editingAlarm != null) "Edit Location Alarm" else "Save Destination") },
             text = {
                 Column {
                     Text("Enter a unique or helpful name for this stop:", style = MaterialTheme.typography.bodyMedium)
@@ -236,18 +244,33 @@ fun LocationAlarmScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        targetLoc?.let {
-                            mainViewModel.saveAlarm(customAlarmLabel, it.latitude, it.longitude, saveDialogRadius)
-                            AppRepository.customRadius.value = saveDialogRadius
+                        val currentEdit = editingAlarm
+                        if (currentEdit != null) {
+                            mainViewModel.saveAlarm(
+                                name = customAlarmLabel,
+                                latitude = currentEdit.latitude,
+                                longitude = currentEdit.longitude,
+                                radius = saveDialogRadius,
+                                id = currentEdit.id
+                            )
+                        } else {
+                            targetLoc?.let {
+                                mainViewModel.saveAlarm(customAlarmLabel, it.latitude, it.longitude, saveDialogRadius)
+                                AppRepository.customRadius.value = saveDialogRadius
+                            }
                         }
                         showSaveDialog = false
+                        editingAlarm = null
                     }
                 ) {
                     Text("Save")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showSaveDialog = false }) {
+                TextButton(onClick = {
+                    showSaveDialog = false
+                    editingAlarm = null
+                }) {
                     Text("Cancel")
                 }
             }
@@ -537,6 +560,19 @@ fun LocationAlarmScreen(
                         AppRepository.targetLocation.value = alarm.geoPoint
                         AppRepository.customRadius.value = alarm.radiusMeters.toFloat()
                         searchQuery = alarm.name
+                    }
+                },
+                onAlarmEdit = { alarmUi ->
+                    editingAlarm = alarmUi
+                    customAlarmLabel = alarmUi.name
+                    saveDialogRadius = alarmUi.radiusMeters.toFloat()
+                    showSaveDialog = true
+                },
+                onAlarmTogglePause = { alarmUi ->
+                    pausedAlarmIds = if (pausedAlarmIds.contains(alarmUi.id)) {
+                        pausedAlarmIds - alarmUi.id
+                    } else {
+                        pausedAlarmIds + alarmUi.id
                     }
                 },
                 onAlarmDeleted = { alarmUi ->
