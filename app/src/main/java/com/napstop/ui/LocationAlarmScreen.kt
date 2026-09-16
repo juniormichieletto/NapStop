@@ -9,6 +9,7 @@ import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,19 +19,26 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +46,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -74,6 +83,7 @@ import com.napstop.SearchResult
 import com.napstop.ui.components.AlarmList
 import com.napstop.ui.components.CurrentLocationButton
 import com.napstop.ui.components.MapContent
+import com.napstop.ui.components.SaveAlarmDialog
 import com.napstop.ui.components.SearchLocationBar
 import com.napstop.ui.model.LocationAlarmUiModel
 import com.napstop.ui.model.toUiModel
@@ -81,9 +91,12 @@ import kotlinx.coroutines.launch
 import org.osmdroid.util.GeoPoint
 
 /**
- * Main Location Alarm Screen decomposing the map foundation, search bar,
- * active alarm controls, and alarm bookmarks list.
+ * Modernized Location Alarm Screen:
+ * - Full-bleed edge-to-edge MapContent occupying the entire background.
+ * - Layered Material 3 Bottom Sheet containing alarm controls and saved stops.
+ * - Floating search bar and center button with contextual positioning.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocationAlarmScreen(
     modifier: Modifier = Modifier,
@@ -168,14 +181,15 @@ fun LocationAlarmScreen(
         }
     }
 
-    var speedText by remember { mutableStateOf("0 km/h") }
-    var distanceText by remember { mutableStateOf("Unknown") }
+    var explicitCenterPoint by remember { mutableStateOf<GeoPoint?>(null) }
+    var forceCenterTrigger by remember { mutableStateOf(0L) }
 
-    // Search state
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<SearchResult>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }
     var displayResults by remember { mutableStateOf(false) }
+    var recentSearches by remember { mutableStateOf(listOf("Grand Central Terminal", "Times Square", "Union Square")) }
+
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
 
@@ -185,180 +199,266 @@ fun LocationAlarmScreen(
     var customAlarmLabel by remember { mutableStateOf("") }
     var saveDialogRadius by remember { mutableStateOf(500f) }
 
-    var forceCenterTrigger by remember { mutableStateOf(0L) }
-    var explicitCenterPoint by remember { mutableStateOf<GeoPoint?>(null) }
-
-    LaunchedEffect(currentLocation, targetLoc) {
-        val curr = currentLocation
-        val targ = targetLoc
-        if (curr != null && targ != null) {
-            val targLoc = Location("").apply {
-                latitude = targ.latitude
-                longitude = targ.longitude
+    fun performSearch() {
+        if (searchQuery.isNotBlank()) {
+            isSearching = true
+            displayResults = true
+            focusManager.clearFocus()
+            coroutineScope.launch {
+                val results = LocationSearchHelper.searchLocation(context, searchQuery)
+                searchResults = results
+                isSearching = false
+                if (results.isNotEmpty()) {
+                    val first = results.first()
+                    explicitCenterPoint = first.geoPoint
+                    forceCenterTrigger = System.currentTimeMillis()
+                }
             }
-            val dist = curr.distanceTo(targLoc)
-            distanceText = if (dist > 1000) String.format("%.1f km", dist / 1000) else String.format("%.0f m", dist)
-            speedText = if (curr.hasSpeed()) String.format("%.0f km/h", curr.speed * 3.6f) else "0 km/h"
         }
     }
 
-    val performSearch = {
-        if (searchQuery.isNotBlank()) {
-            coroutineScope.launch {
-                isSearching = true
-                displayResults = true
-                searchResults = LocationSearchHelper.searchLocation(context, searchQuery)
-                isSearching = false
+    // Dynamic telemetry calculations
+    val distanceText = remember(currentLocation, targetLoc) {
+        if (currentLocation != null && targetLoc != null) {
+            val target = Location("").apply {
+                latitude = targetLoc!!.latitude
+                longitude = targetLoc!!.longitude
             }
+            val dist = currentLocation!!.distanceTo(target)
+            if (dist >= 1000) String.format("%.1f km", dist / 1000) else "${dist.toInt()} m"
+        } else {
+            "--"
+        }
+    }
+
+    val speedText = remember(currentLocation) {
+        if (currentLocation != null && currentLocation!!.hasSpeed()) {
+            String.format("%.1f km/h", currentLocation!!.speed * 3.6f)
+        } else {
+            "--"
         }
     }
 
     if (showSaveDialog) {
-        AlertDialog(
-            onDismissRequest = {
+        SaveAlarmDialog(
+            initialName = customAlarmLabel,
+            initialRadius = saveDialogRadius,
+            isEditing = editingAlarm != null,
+            onDismiss = {
                 showSaveDialog = false
                 editingAlarm = null
             },
-            title = { Text(if (editingAlarm != null) "Edit Location Alarm" else "Save Destination") },
-            text = {
-                Column {
-                    Text("Enter a unique or helpful name for this stop:", style = MaterialTheme.typography.bodyMedium)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = customAlarmLabel,
-                        onValueChange = { customAlarmLabel = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Home, Work Office, Central Station etc.") },
-                        singleLine = true
+            onConfirm = { name, radius ->
+                val currentEdit = editingAlarm
+                if (currentEdit != null) {
+                    mainViewModel.saveAlarm(
+                        name = name,
+                        latitude = currentEdit.latitude,
+                        longitude = currentEdit.longitude,
+                        radius = radius,
+                        id = currentEdit.id
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Trigger Radius: ${saveDialogRadius.toInt()}m", style = MaterialTheme.typography.bodyMedium)
-                    Slider(
-                        value = saveDialogRadius,
-                        onValueChange = { saveDialogRadius = it },
-                        valueRange = 100f..5000f,
-                        steps = 49
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val currentEdit = editingAlarm
-                        if (currentEdit != null) {
-                            mainViewModel.saveAlarm(
-                                name = customAlarmLabel,
-                                latitude = currentEdit.latitude,
-                                longitude = currentEdit.longitude,
-                                radius = saveDialogRadius,
-                                id = currentEdit.id
-                            )
-                        } else {
-                            targetLoc?.let {
-                                mainViewModel.saveAlarm(customAlarmLabel, it.latitude, it.longitude, saveDialogRadius)
-                                AppRepository.customRadius.value = saveDialogRadius
-                            }
-                        }
-                        showSaveDialog = false
-                        editingAlarm = null
+                } else {
+                    targetLoc?.let {
+                        mainViewModel.saveAlarm(name, it.latitude, it.longitude, radius)
+                        AppRepository.customRadius.value = radius
                     }
-                ) {
-                    Text("Save")
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showSaveDialog = false
-                    editingAlarm = null
-                }) {
-                    Text("Cancel")
-                }
+                showSaveDialog = false
+                editingAlarm = null
             }
         )
     }
 
-    Column(
-        modifier = modifier.fillMaxSize(),
-    ) {
-        if (!hasBackgroundLocation && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+    val scaffoldState = rememberBottomSheetScaffoldState()
+
+    BottomSheetScaffold(
+        scaffoldState = scaffoldState,
+        sheetPeekHeight = 220.dp,
+        sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        sheetContainerColor = MaterialTheme.colorScheme.surface,
+        sheetContentColor = MaterialTheme.colorScheme.onSurface,
+        sheetDragHandle = {
+            BottomSheetDefaults.DragHandle(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            )
+        },
+        sheetContent = {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clickable {
-                        try {
-                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                data = Uri.fromParts("package", context.packageName, null)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp)
+                    .navigationBarsPadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (targetLoc == null) {
+                    Text(
+                        text = "Tap on map or search above to set stop",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 12.dp)
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = searchQuery.ifBlank { "Selected Destination" },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = String.format("Lat: %.4f, Lon: %.4f", targetLoc!!.latitude, targetLoc!!.longitude),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        // Save alarm bookmark button
+                        val isAlreadySaved = savedAlarmsEntities.any {
+                            val latDiff = Math.abs(it.latitude - targetLoc!!.latitude)
+                            val lonDiff = Math.abs(it.longitude - targetLoc!!.longitude)
+                            latDiff < 0.0001 && lonDiff < 0.0001
+                        }
+
+                        IconButton(
+                            onClick = {
+                                if (!isAlreadySaved) {
+                                    customAlarmLabel = searchQuery
+                                    saveDialogRadius = customRadius ?: dynamicRadius
+                                    showSaveDialog = true
+                                }
                             }
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                        ) {
+                            Icon(
+                                imageVector = if (isAlreadySaved) Icons.Default.Star else Icons.Default.StarBorder,
+                                contentDescription = "Save destination",
+                                tint = if (isAlreadySaved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                            )
                         }
                     }
-            ) {
-                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Warning, contentDescription = "Warning", tint = MaterialTheme.colorScheme.error)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "Background Location Required",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        Text(
-                            text = "Tap here, then select 'Permissions' -> 'Location' -> 'Allow all the time' for reliable tracking.",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-        }
 
-        if (!isIgnoringBatteryOptimizations && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clickable {
-                        try {
-                            val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        StatBox("Distance", distanceText)
+                        StatBox("Speed", speedText)
+                        StatBox("Radius", "${(customRadius ?: dynamicRadius).toInt()}m")
+                    }
+
+                    if (!isAlarmActive) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Trigger Radius", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                if (customRadius != null) {
+                                    Text(
+                                        "Reset to Dynamic",
+                                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.primary),
+                                        modifier = Modifier.clickable { AppRepository.customRadius.value = null }
+                                    )
+                                }
+                            }
+                            Slider(
+                                value = customRadius ?: dynamicRadius,
+                                onValueChange = { AppRepository.customRadius.value = it },
+                                valueRange = 100f..10000f
+                            )
                         }
                     }
-            ) {
-                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Warning, contentDescription = "Warning", tint = MaterialTheme.colorScheme.secondary)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "Battery Optimization Active",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        Text(
-                            text = "Tap here to grant background exemption so the alarm checks don't sleep.",
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        Button(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            enabled = !isAlarmActive,
+                            onClick = {
+                                AppRepository.isAlarmActive.value = true
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                    context.startForegroundService(Intent(context, LocationAlarmService::class.java))
+                                } else {
+                                    context.startService(Intent(context, LocationAlarmService::class.java))
+                                }
+                            }
+                        ) {
+                            Text(if (isAlarmActive) "Alarm Active" else "Start Alarm")
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Button(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            enabled = isAlarmActive,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                disabledContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.38f)
+                            ),
+                            onClick = {
+                                AppRepository.isAlarmActive.value = false
+                                AlarmController.stopAlarm()
+                                context.stopService(Intent(context, LocationAlarmService::class.java))
+                            }
+                        ) {
+                            Text("Stop")
+                        }
                     }
                 }
-            }
-        }
 
+                AlarmList(
+                    alarms = savedAlarmUiModels,
+                    onAlarmSelected = { alarm ->
+                        if (!isAlarmActive) {
+                            AppRepository.targetLocation.value = alarm.geoPoint
+                            AppRepository.customRadius.value = alarm.radiusMeters.toFloat()
+                            searchQuery = alarm.name
+                        }
+                    },
+                    onAlarmEdit = { alarmUi ->
+                        editingAlarm = alarmUi
+                        customAlarmLabel = alarmUi.name
+                        saveDialogRadius = alarmUi.radiusMeters.toFloat()
+                        showSaveDialog = true
+                    },
+                    onAlarmTogglePause = { alarmUi ->
+                        pausedAlarmIds = if (pausedAlarmIds.contains(alarmUi.id)) {
+                            pausedAlarmIds - alarmUi.id
+                        } else {
+                            pausedAlarmIds + alarmUi.id
+                        }
+                    },
+                    onAlarmDeleted = { alarmUi ->
+                        savedAlarmsEntities.find { it.id == alarmUi.id }?.let { entity ->
+                            mainViewModel.deleteAlarm(entity)
+                        }
+                    }
+                )
+            }
+        },
+        modifier = modifier.fillMaxSize()
+    ) { innerPadding ->
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            // Map Content
+            // Full-Bleed Map Content
             MapContent(
                 targetLocation = targetLoc,
                 currentLocation = currentLocation,
@@ -375,7 +475,128 @@ fun LocationAlarmScreen(
                 }
             )
 
-            // Centering Button floating on bottom right of map
+            // Permission / Battery Optimization warning overlays at top of map
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+            ) {
+                if (!hasBackgroundLocation && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .clickable {
+                                try {
+                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.fromParts("package", context.packageName, null)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                    ) {
+                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Warning, contentDescription = "Warning", tint = MaterialTheme.colorScheme.error)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Background Location Required",
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Text(
+                                    text = "Tap here, select Permissions -> Location -> Allow all the time.",
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (!isIgnoringBatteryOptimizations && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .clickable {
+                                try {
+                                    val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                    ) {
+                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Warning, contentDescription = "Warning", tint = MaterialTheme.colorScheme.secondary)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Battery Optimization Active",
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Text(
+                                    text = "Tap here to exempt NapStop so background tracking stays active.",
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Dynamic Floating Search Bar Overlay
+                SearchLocationBar(
+                    query = searchQuery,
+                    onQueryChange = {
+                        searchQuery = it
+                        if (it.isEmpty()) {
+                            searchResults = emptyList()
+                            displayResults = false
+                        } else {
+                            displayResults = true
+                        }
+                    },
+                    onSearch = {
+                        performSearch()
+                    },
+                    onClear = {
+                        searchQuery = ""
+                        searchResults = emptyList()
+                        displayResults = false
+                    },
+                    isSearching = isSearching,
+                    searchResults = searchResults,
+                    displayResults = displayResults,
+                    recentSearches = recentSearches,
+                    onRecentSelected = { selectedQuery ->
+                        searchQuery = selectedQuery
+                        performSearch()
+                    },
+                    onResultSelected = { result ->
+                        if (!isAlarmActive) {
+                            AppRepository.targetLocation.value = result.geoPoint
+                            searchQuery = result.name
+                            displayResults = false
+                            if (!recentSearches.contains(result.name)) {
+                                recentSearches = listOf(result.name) + recentSearches.take(4)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // Centering Button floating on bottom right of the visible map area
             CurrentLocationButton(
                 onClick = {
                     currentLocation?.let {
@@ -386,200 +607,9 @@ fun LocationAlarmScreen(
                         forceCenterTrigger = System.currentTimeMillis()
                     }
                 },
-                modifier = Modifier.align(Alignment.BottomEnd)
-            )
-
-            // Dynamic Floating Search Bar Overlay
-            SearchLocationBar(
-                query = searchQuery,
-                onQueryChange = {
-                    searchQuery = it
-                    if (it.isEmpty()) {
-                        searchResults = emptyList()
-                        displayResults = false
-                    } else {
-                        displayResults = true
-                    }
-                },
-                onSearch = {
-                    performSearch()
-                },
-                onClear = {
-                    searchQuery = ""
-                    searchResults = emptyList()
-                    displayResults = false
-                },
-                isSearching = isSearching,
-                searchResults = searchResults,
-                displayResults = displayResults,
-                onResultSelected = { result ->
-                    if (!isAlarmActive) {
-                        AppRepository.targetLocation.value = result.geoPoint
-                        searchQuery = result.name
-                        displayResults = false
-                    }
-                },
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
-        }
-
-        // Bottom control section combined with Saved Alarms management
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            if (targetLoc == null) {
-                Text(
-                    text = "Tap on map or search above to set stop",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = searchQuery.ifBlank { "Selected Destination" },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = String.format("Lat: %.4f, Lon: %.4f", targetLoc!!.latitude, targetLoc!!.longitude),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    // Save alarm bookmark button
-                    val isAlreadySaved = savedAlarmsEntities.any {
-                        val latDiff = Math.abs(it.latitude - targetLoc!!.latitude)
-                        val lonDiff = Math.abs(it.longitude - targetLoc!!.longitude)
-                        latDiff < 0.0001 && lonDiff < 0.0001
-                    }
-
-                    IconButton(
-                        onClick = {
-                            if (!isAlreadySaved) {
-                                customAlarmLabel = searchQuery
-                                saveDialogRadius = customRadius ?: dynamicRadius
-                                showSaveDialog = true
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = if (isAlreadySaved) Icons.Default.Star else Icons.Default.StarBorder,
-                            contentDescription = "Save destination",
-                            tint = if (isAlreadySaved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    StatBox("Distance", distanceText)
-                    StatBox("Speed", speedText)
-                    StatBox("Radius", "${(customRadius ?: dynamicRadius).toInt()}m")
-                }
-
-                if (!isAlarmActive) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Trigger Radius", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            if (customRadius != null) {
-                                Text(
-                                    "Reset to Dynamic",
-                                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.primary),
-                                    modifier = Modifier.clickable { AppRepository.customRadius.value = null }
-                                )
-                            }
-                        }
-                        Slider(
-                            value = customRadius ?: dynamicRadius,
-                            onValueChange = { AppRepository.customRadius.value = it },
-                            valueRange = 100f..10000f
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    Button(
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        enabled = !isAlarmActive,
-                        onClick = {
-                            AppRepository.isAlarmActive.value = true
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                context.startForegroundService(Intent(context, LocationAlarmService::class.java))
-                            } else {
-                                context.startService(Intent(context, LocationAlarmService::class.java))
-                            }
-                        }
-                    ) {
-                        Text(if (isAlarmActive) "Alarm Active" else "Start Alarm")
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Button(
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        enabled = isAlarmActive,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            disabledContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.38f)
-                        ),
-                        onClick = {
-                            AppRepository.isAlarmActive.value = false
-                            AlarmController.stopAlarm()
-                            context.stopService(Intent(context, LocationAlarmService::class.java))
-                        }
-                    ) {
-                        Text("Stop")
-                    }
-                }
-            }
-
-            AlarmList(
-                alarms = savedAlarmUiModels,
-                onAlarmSelected = { alarm ->
-                    if (!isAlarmActive) {
-                        AppRepository.targetLocation.value = alarm.geoPoint
-                        AppRepository.customRadius.value = alarm.radiusMeters.toFloat()
-                        searchQuery = alarm.name
-                    }
-                },
-                onAlarmEdit = { alarmUi ->
-                    editingAlarm = alarmUi
-                    customAlarmLabel = alarmUi.name
-                    saveDialogRadius = alarmUi.radiusMeters.toFloat()
-                    showSaveDialog = true
-                },
-                onAlarmTogglePause = { alarmUi ->
-                    pausedAlarmIds = if (pausedAlarmIds.contains(alarmUi.id)) {
-                        pausedAlarmIds - alarmUi.id
-                    } else {
-                        pausedAlarmIds + alarmUi.id
-                    }
-                },
-                onAlarmDeleted = { alarmUi ->
-                    savedAlarmsEntities.find { it.id == alarmUi.id }?.let { entity ->
-                        mainViewModel.deleteAlarm(entity)
-                    }
-                }
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 8.dp, end = 8.dp)
             )
         }
     }
