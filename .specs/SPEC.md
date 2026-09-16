@@ -38,4 +38,7 @@ NapStop is an Android application designed for commuters who want to sleep on pu
 
 ## 7. Build Constraints
 - Minimum Android SDK: 29 (Android 10)
-- Target Android SDK: 34 (Android 14) 
+- Target Android SDK: 34 (Android 14)
+
+## 8. UI Modernization Roadmap
+See [UI Modernization Specification](UI_MODERNIZATION_SPEC.md) for the incremental modernization roadmap and target architecture for the redesigned location alarm experience.
