@@ -42,12 +42,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.napstop.ui.model.LocationAlarmUiModel
+import com.napstop.ui.theme.OnSemanticActiveGreenContainer
+import com.napstop.ui.theme.SemanticActiveGreenContainer
 
 /**
- * Redesigned Alarm Card component according to Phase 1 Specification:
+ * Redesigned Alarm Card component according to Phase 1 & 2 Specification:
  * - Hierarchy: Place name -> radius · trigger -> status chip -> overflow menu
- * - Replaces raw coordinates with human-readable alarm parameters
- * - Replaces permanent trash icon with contextual overflow menu (Edit, Pause/Resume, Delete)
+ * - Styled with design system tokens (MaterialTheme typography, semantic containers)
  */
 @Composable
 fun AlarmListItem(
@@ -63,15 +64,15 @@ fun AlarmListItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(MaterialTheme.shapes.large)
             .clickable(onClick = onClick)
             .testTag("alarm_card_${alarm.id}"),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = if (alarm.isCurrentTarget) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
             } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
             }
         ),
         border = if (alarm.isCurrentTarget) {
@@ -94,14 +95,14 @@ fun AlarmListItem(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(40.dp)
                         .background(
                             color = if (alarm.isCurrentTarget) {
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                MaterialTheme.colorScheme.primaryContainer
                             } else {
-                                MaterialTheme.colorScheme.surface
+                                MaterialTheme.colorScheme.surfaceVariant
                             },
-                            shape = RoundedCornerShape(10.dp)
+                            shape = MaterialTheme.shapes.medium
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -113,7 +114,7 @@ fun AlarmListItem(
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         },
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
@@ -124,6 +125,7 @@ fun AlarmListItem(
                         text = alarm.name,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -236,8 +238,8 @@ private fun StatusChip(
             Quadruple(
                 Icons.Default.NotificationsActive,
                 "Active",
-                MaterialTheme.colorScheme.primaryContainer,
-                MaterialTheme.colorScheme.onPrimaryContainer
+                SemanticActiveGreenContainer,
+                OnSemanticActiveGreenContainer
             )
         }
         isPaused -> {
@@ -252,7 +254,7 @@ private fun StatusChip(
             Quadruple(
                 Icons.Default.NotificationsNone,
                 "Ready",
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                 MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
