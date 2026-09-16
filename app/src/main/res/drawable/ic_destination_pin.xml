@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="38dp"
+    android:height="49dp"
+    android:viewportWidth="38"
+    android:viewportHeight="49">
+    <group android:translateX="-35" android:translateY="-29">
+        <path
+            android:fillColor="#3485F7"
+            android:pathData="M 54,78 C 52,74 35,56 35,44 A 19,19 0 0,1 73,44 C 73,56 56,74 54,78 Z" />
+        <!-- Bell Top Loop -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M 54,32 A 2.2,2.2 0 1,1 53.99,32 Z" />
+        <!-- Bell Body -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M 54,35.5 C 50,35.5 47.5,38.5 47.5,43 C 47.5,45.5 45,47.5 44,48.8 C 43.5,49.4 43.9,50.2 44.7,50.2 H 63.3 C 64.1,50.2 64.5,49.4 64,48.8 C 63,47.5 60.5,45.5 60.5,43 C 60.5,38.5 58,35.5 54,35.5 Z" />
+        <!-- Bell Clapper -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M 51.5,51.2 C 51.5,53.5 56.5,53.5 56.5,51.2 Z" />
+    </group>
+</vector>

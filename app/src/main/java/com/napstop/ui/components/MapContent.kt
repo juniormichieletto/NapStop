@@ -15,6 +15,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.osmdroid.events.MapEventsReceiver
+import com.napstop.R
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
@@ -101,6 +102,7 @@ fun MapContent(
             val targetMarker = Marker(mapView)
             targetMarker.position = targetLocation
             targetMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            targetMarker.icon = ContextCompat.getDrawable(context, R.drawable.ic_destination_pin)
             targetMarker.title = "Destination"
             mapView.overlays.add(targetMarker)
 
@@ -119,7 +121,7 @@ fun MapContent(
             val currentMarker = Marker(mapView)
             currentMarker.position = GeoPoint(currentLocation.latitude, currentLocation.longitude)
             currentMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-            currentMarker.icon = ContextCompat.getDrawable(context, android.R.drawable.ic_menu_mylocation)
+            currentMarker.icon = ContextCompat.getDrawable(context, R.drawable.ic_my_location_dot)
             currentMarker.title = "You"
             mapView.overlays.add(currentMarker)
         }
